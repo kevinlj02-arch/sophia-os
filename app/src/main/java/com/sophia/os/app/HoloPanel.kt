@@ -1,5 +1,12 @@
 package com.sophia.os.app
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +19,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,12 +47,30 @@ fun HoloPanel(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
+    val transition = rememberInfiniteTransition(label = "panelGlow")
+    val glow by transition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2600, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "glow",
+    )
+
     Box(modifier = modifier) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Brush.linearGradient(listOf(PanelGold, PanelGoldDim)))
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            PanelGold.copy(alpha = glow),
+                            PanelGoldDim.copy(alpha = glow * 0.8f),
+                        )
+                    )
+                )
                 .padding(1.5.dp)
                 .clip(RoundedCornerShape(13.dp))
                 .background(PanelBg)
@@ -91,11 +121,19 @@ fun StatRow(label: String, value: String, highlight: Boolean = false) {
 
 @Composable
 fun StatBar(label: String, fraction: Float) {
+    var started by remember { mutableStateOf(false) }
+    val animatedFraction by animateFloatAsState(
+        targetValue = if (started) fraction.coerceIn(0f, 1f) else 0f,
+        animationSpec = tween(900, easing = LinearEasing),
+        label = "fill",
+    )
+    LaunchedEffect(Unit) { started = true }
+
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(label.uppercase(), color = PanelMuted, fontSize = 11.sp, letterSpacing = 0.5.sp)
             Spacer(Modifier.weight(1f))
-            Text("${(fraction * 100).toInt()}%", color = PanelGoldBright, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text("${(animatedFraction * 100).toInt()}%", color = PanelGoldBright, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(4.dp))
         Box(
@@ -107,7 +145,7 @@ fun StatBar(label: String, fraction: Float) {
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                    .fillMaxWidth(animatedFraction)
                     .height(5.dp)
                     .clip(RoundedCornerShape(3.dp))
                     .background(Brush.horizontalGradient(listOf(PanelGoldDim, PanelGoldBright)))
