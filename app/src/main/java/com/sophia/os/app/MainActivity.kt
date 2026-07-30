@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -22,6 +23,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
@@ -79,15 +82,22 @@ private fun DashboardScreen(onOpenChat: () -> Unit) {
                 .fillMaxSize()
                 .padding(padding)
                 .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(text = "Good day.", style = MaterialTheme.typography.headlineLarge)
+            SophiaAvatar(state = SophiaState.IDLE, modifier = Modifier.padding(top = 32.dp))
             Text(
-                text = "I'm Sophia. Your conversation history now persists across restarts.",
+                text = "Sophia",
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.padding(top = 16.dp),
+            )
+            Text(
+                text = "Your AI operating assistant.",
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp, bottom = 32.dp),
             )
             Button(onClick = onOpenChat) {
-                Text("Start a conversation")
+                Text("Talk to Sophia")
             }
         }
     }
@@ -97,9 +107,16 @@ private fun DashboardScreen(onOpenChat: () -> Unit) {
 private fun ChatScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val chatStore = remember { ChatStore(context) }
+    val ai = remember { SophiaAI(BuildConfig.ANTHROPIC_API_KEY) }
     val scope = rememberCoroutineScope()
     val messages by chatStore.messages.collectAsState(initial = emptyList())
     var draft by remember { mutableStateOf("") }
+    var sophiaState by remember { mutableStateOf(SophiaState.IDLE) }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
+    }
 
     Scaffold(
         bottomBar = {
@@ -116,29 +133,67 @@ private fun ChatScreen(onBack: () -> Unit) {
                 Button(
                     onClick = {
                         val text = draft.trim()
-                        if (text.isNotEmpty()) {
+                        if (text.isNotEmpty() && sophiaState != SophiaState.THINKING) {
                             draft = ""
                             scope.launch {
                                 chatStore.addMessage(fromUser = true, text = text)
-                                chatStore.addMessage(
-                                    fromUser = false,
-                                    text = "This is a demo build, so I can't reason yet — but I've saved that, and it'll still be here next time you open the app.",
+                                sophiaState = SophiaState.THINKING
+
+                                val history = messages + PersistedMessage(true, text)
+
+                                if (BuildConfig.ANTHROPIC_API_KEY.isBlank()) {
+                                    chatStore.addMessage(
+                                        fromUser = false,
+                                        text = "My API key isn't set up yet, so I can't think properly. Add the ANTHROPIC_API_KEY secret to the repo and rebuild.",
+                                    )
+                                    sophiaState = SophiaState.IDLE
+                                    return@launch
+                                }
+
+                                val result = ai.generateReply(history)
+                                result.fold(
+                                    onSuccess = { reply ->
+                                        sophiaState = SophiaState.SPEAKING
+                                        chatStore.addMessage(fromUser = false, text = reply)
+                                        sophiaState = SophiaState.IDLE
+                                    },
+                                    onFailure = { error ->
+                                        chatStore.addMessage(
+                                            fromUser = false,
+                                            text = "I hit an error reaching my reasoning service: ${error.message}",
+                                        )
+                                        sophiaState = SophiaState.IDLE
+                                    },
                                 )
                             }
                         }
                     },
                     modifier = Modifier.padding(start = 8.dp),
                 ) {
-                    Text("Send")
+                    Text(if (sophiaState == SophiaState.THINKING) "…" else "Send")
                 }
             }
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            Row(modifier = Modifier.padding(12.dp)) {
-                Button(onClick = onBack) { Text("← Back") }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Button(onClick = onBack) { Text("←") }
+                SophiaAvatar(
+                    state = sophiaState,
+                    modifier = Modifier.padding(start = 12.dp),
+                    avatarSize = 48.dp,
+                )
+                Text(
+                    text = if (sophiaState == SophiaState.THINKING) "Sophia is thinking…" else "Sophia",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(start = 12.dp),
+                )
             }
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
