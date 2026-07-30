@@ -38,6 +38,7 @@ private val ReadoutBg = Color(0xCC0F0D13)
 @Composable
 fun HomeScreen(
     onOpenChat: () -> Unit,
+    onOpenMemory: () -> Unit,
     sophiaState: SophiaState = SophiaState.IDLE,
 ) {
     Box(
@@ -70,46 +71,15 @@ fun HomeScreen(
             )
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(430.dp),
+                modifier = Modifier.fillMaxWidth().height(430.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                SophiaCharacter(
-                    state = sophiaState,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                SophiaCharacter(state = sophiaState, modifier = Modifier.fillMaxSize())
 
-                FloatingReadout(
-                    title = "NEURAL NODES",
-                    value = "128.7B",
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 12.dp, top = 16.dp),
-                )
-                FloatingReadout(
-                    title = "QUANTUM LINK",
-                    value = "SECURE",
-                    valueColor = Green,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(end = 12.dp, top = 16.dp),
-                )
-                FloatingReadout(
-                    title = "COHERENCE",
-                    value = "STABLE",
-                    valueColor = Green,
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(start = 12.dp),
-                )
-                FloatingReadout(
-                    title = "QUBITS",
-                    value = "1.02M",
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 12.dp),
-                )
+                FloatingReadout("NEURAL NODES", "128.7B", Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 16.dp))
+                FloatingReadout("QUANTUM LINK", "SECURE", Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 16.dp), Green)
+                FloatingReadout("COHERENCE", "STABLE", Modifier.align(Alignment.CenterStart).padding(start = 12.dp), Green)
+                FloatingReadout("QUBITS", "1.02M", Modifier.align(Alignment.CenterEnd).padding(end = 12.dp))
             }
 
             Text(
@@ -155,7 +125,7 @@ fun HomeScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             ModuleChip("Conversation", true, Modifier.weight(1f), onOpenChat)
-                            ModuleChip("Memory Vault", false, Modifier.weight(1f)) {}
+                            ModuleChip("Memory Vault", true, Modifier.weight(1f), onOpenMemory)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             ModuleChip("Knowledge", false, Modifier.weight(1f)) {}
