@@ -130,8 +130,6 @@ private fun ChatContainer(onBack: () -> Unit) {
                     chatStore.addMessage(fromUser = false, text = reply)
                     if (voiceOutputEnabled) voice.speak(reply)
                     sophiaState = SophiaState.IDLE
-                    val newFacts = ai.extractFacts(trimmed, reply)
-                    newFacts.forEach { memoryStore.remember(it) }
                 },
                 onFailure = { error ->
                     chatStore.addMessage(
