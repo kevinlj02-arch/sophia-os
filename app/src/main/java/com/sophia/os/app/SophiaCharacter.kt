@@ -3,8 +3,8 @@ package com.sophia.os.app
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -38,20 +38,13 @@ fun SophiaCharacter(
     val breathPhase by transition.animateFloat(
         initialValue = 0f,
         targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(4200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
+        animationSpec = infiniteRepeatable(tween(4200, easing = LinearEasing), RepeatMode.Restart),
         label = "breath",
     )
-
     val swayPhase by transition.animateFloat(
         initialValue = 0f,
         targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(7000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
+        animationSpec = infiniteRepeatable(tween(7000, easing = LinearEasing), RepeatMode.Restart),
         label = "sway",
     )
 
@@ -63,10 +56,7 @@ fun SophiaCharacter(
     val auraPhase by transition.animateFloat(
         initialValue = 0f,
         targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(auraDuration, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
+        animationSpec = infiniteRepeatable(tween(auraDuration, easing = LinearEasing), RepeatMode.Restart),
         label = "aura",
     )
 
@@ -91,6 +81,19 @@ fun SophiaCharacter(
         SophiaState.SPEAKING -> Color(0xFFFFC94D)
     }
 
+    val idleWeight by animateFloatAsState(
+        targetValue = if (state == SophiaState.IDLE) 1f else 0f,
+        animationSpec = tween(450), label = "idleW",
+    )
+    val speakWeight by animateFloatAsState(
+        targetValue = if (state == SophiaState.SPEAKING) 1f else 0f,
+        animationSpec = tween(450), label = "speakW",
+    )
+    val thinkWeight by animateFloatAsState(
+        targetValue = if (state == SophiaState.THINKING) 1f else 0f,
+        animationSpec = tween(450), label = "thinkW",
+    )
+
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2f, size.height * 0.42f)
@@ -110,20 +113,29 @@ fun SophiaCharacter(
             )
         }
 
-        Image(
-            painter = painterResource(id = R.drawable.sophia_character),
-            contentDescription = "Sophia",
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    alpha = entrance
-                    scaleX = breathScale
-                    scaleY = breathScale
-                    translationX = swayX
-                    translationY = breathLift + entranceLift
-                    rotationZ = swayRot
-                },
-        )
+        val motion: Modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = breathScale
+                scaleY = breathScale
+                translationX = swayX
+                translationY = breathLift + entranceLift
+                rotationZ = swayRot
+            }
+
+        PoseLayer(R.drawable.sophia_listening, idleWeight * entrance, motion)
+        PoseLayer(R.drawable.sophia_speaking, speakWeight * entrance, motion)
+        PoseLayer(R.drawable.sophia_greeting, thinkWeight * entrance, motion)
     }
+}
+
+@Composable
+private fun PoseLayer(resId: Int, alpha: Float, motion: Modifier) {
+    if (alpha <= 0.01f) return
+    Image(
+        painter = painterResource(id = resId),
+        contentDescription = "Sophia",
+        contentScale = ContentScale.Fit,
+        modifier = motion.graphicsLayer { this.alpha = alpha },
+    )
 }
