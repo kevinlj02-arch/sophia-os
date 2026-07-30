@@ -1,3 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.SophiaDemo" parent="android:Theme.Material.NoActionBar" />
+
+    <style name="Theme.SophiaDemo.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/sophia_ink</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.SophiaDemo</item>
+    </style>
 </resources>
