@@ -33,6 +33,7 @@ private val GoldDim = Color(0xFF8A7223)
 private val TextPrimary = Color(0xFFF5F2E8)
 private val TextMuted = Color(0xFF9A927E)
 private val Green = Color(0xFF4ADE80)
+private val ReadoutBg = Color(0xCC0F0D13)
 
 @Composable
 fun HomeScreen(
@@ -68,12 +69,48 @@ fun HomeScreen(
                 modifier = Modifier.padding(top = 2.dp),
             )
 
-            SophiaCharacter(
-                state = sophiaState,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(420.dp),
-            )
+                    .height(430.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                SophiaCharacter(
+                    state = sophiaState,
+                    modifier = Modifier.fillMaxSize(),
+                )
+
+                FloatingReadout(
+                    title = "NEURAL NODES",
+                    value = "128.7B",
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 12.dp, top = 16.dp),
+                )
+                FloatingReadout(
+                    title = "QUANTUM LINK",
+                    value = "SECURE",
+                    valueColor = Green,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 12.dp, top = 16.dp),
+                )
+                FloatingReadout(
+                    title = "COHERENCE",
+                    value = "STABLE",
+                    valueColor = Green,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(start = 12.dp),
+                )
+                FloatingReadout(
+                    title = "QUBITS",
+                    value = "1.02M",
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 12.dp),
+                )
+            }
 
             Text(
                 text = when (sophiaState) {
@@ -142,6 +179,24 @@ fun HomeScreen(
             CommandBar()
             Spacer(Modifier.height(20.dp))
         }
+    }
+}
+
+@Composable
+private fun FloatingReadout(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: Color = GoldBright,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(ReadoutBg)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    ) {
+        Text(title, color = TextMuted, fontSize = 8.sp, letterSpacing = 1.sp)
+        Text(value, color = valueColor, fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
     }
 }
 
