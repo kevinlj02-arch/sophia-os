@@ -39,14 +39,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val ChatInk = Color(0xFF07080F)
-private val ChatPanel = Color(0xFF13141F)
-private val ChatInputBg = Color(0xFF1B1D2B)
-private val ChatViolet = Color(0xFF6C63FF)
-private val ChatVioletSoft = Color(0xFF8B7BFF)
-private val ChatCyan = Color(0xFF00D4C8)
-private val ChatTextPrimary = Color(0xFFF2F3FA)
-private val ChatTextMuted = Color(0xFF8A8FA6)
+private val ChatInk = Color(0xFF050507)
+private val ChatPanel = Color(0xFF121016)
+private val ChatInputBg = Color(0xFF1A1720)
+private val ChatGold = Color(0xFFD4AF37)
+private val ChatGoldBright = Color(0xFFFFC94D)
+private val ChatGoldDim = Color(0xFF8A7223)
+private val ChatTextPrimary = Color(0xFFF5F2E8)
+private val ChatTextMuted = Color(0xFF9A927E)
 
 @Composable
 fun ChatScreen(
@@ -68,7 +68,7 @@ fun ChatScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(ChatInk, Color(0xFF0B0D18), ChatInk)))
+            .background(Brush.verticalGradient(listOf(ChatInk, Color(0xFF0C0A0F), ChatInk)))
     ) {
         ChatHeader(sophiaState = sophiaState, onBack = onBack)
 
@@ -117,10 +117,9 @@ private fun ChatHeader(sophiaState: SophiaState, onBack: () -> Unit) {
         ) {
             Text("←", color = ChatTextPrimary, fontSize = 20.sp)
         }
-        SophiaAvatar(
-            state = sophiaState,
+        SophiaEmblem(
             modifier = Modifier.padding(start = 12.dp),
-            avatarSize = 44.dp,
+            emblemSize = 40.dp,
         )
         Column(modifier = Modifier.padding(start = 12.dp)) {
             Text("Sophia", color = ChatTextPrimary, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -130,7 +129,7 @@ private fun ChatHeader(sophiaState: SophiaState, onBack: () -> Unit) {
                     SophiaState.SPEAKING -> "Speaking"
                     SophiaState.IDLE -> "Online"
                 },
-                color = if (sophiaState == SophiaState.IDLE) ChatCyan else ChatVioletSoft,
+                color = if (sophiaState == SophiaState.IDLE) ChatGoldBright else ChatGold,
                 fontSize = 12.sp,
             )
         }
@@ -140,12 +139,14 @@ private fun ChatHeader(sophiaState: SophiaState, onBack: () -> Unit) {
 @Composable
 private fun EmptyChatState(modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.fillMaxWidth().padding(32.dp),
+        modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Bottom,
     ) {
-        SophiaAvatar(state = SophiaState.IDLE, avatarSize = 96.dp)
-        Spacer(Modifier.height(20.dp))
+        SophiaCharacter(
+            state = SophiaState.IDLE,
+            modifier = Modifier.fillMaxWidth().height(360.dp),
+        )
         Text(
             "Say hello to Sophia",
             color = ChatTextPrimary,
@@ -157,7 +158,7 @@ private fun EmptyChatState(modifier: Modifier = Modifier) {
             color = ChatTextMuted,
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.padding(top = 8.dp, start = 32.dp, end = 32.dp, bottom = 24.dp),
         )
     }
 }
@@ -169,10 +170,10 @@ private fun UserBubble(text: String) {
             modifier = Modifier
                 .widthIn(max = 300.dp)
                 .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 4.dp))
-                .background(Brush.horizontalGradient(listOf(ChatViolet, ChatVioletSoft)))
+                .background(Brush.horizontalGradient(listOf(ChatGoldDim, ChatGold)))
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
-            Text(text, color = Color.White, fontSize = 15.sp)
+            Text(text, color = ChatInk, fontSize = 15.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -180,7 +181,7 @@ private fun UserBubble(text: String) {
 @Composable
 private fun SophiaBubble(text: String) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        SophiaAvatar(state = SophiaState.IDLE, avatarSize = 28.dp)
+        SophiaEmblem(emblemSize = 28.dp)
         Box(
             modifier = Modifier
                 .padding(start = 8.dp)
@@ -197,7 +198,7 @@ private fun SophiaBubble(text: String) {
 @Composable
 private fun ThinkingRow() {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        SophiaAvatar(state = SophiaState.THINKING, avatarSize = 28.dp)
+        SophiaEmblem(emblemSize = 28.dp)
         Box(
             modifier = Modifier
                 .padding(start = 8.dp)
@@ -228,7 +229,7 @@ private fun TypingDots() {
                 modifier = Modifier
                     .size(7.dp)
                     .clip(RoundedCornerShape(4.dp))
-                    .background(ChatTextMuted.copy(alpha = alpha))
+                    .background(ChatGold.copy(alpha = alpha))
             )
         }
     }
@@ -263,7 +264,7 @@ private fun ChatInputBar(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
-                cursorColor = ChatViolet,
+                cursorColor = ChatGold,
             ),
         )
         Spacer(Modifier.size(10.dp))
@@ -273,13 +274,13 @@ private fun ChatInputBar(
                 .size(48.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(
-                    if (sendActive) Brush.horizontalGradient(listOf(ChatViolet, ChatVioletSoft))
+                    if (sendActive) Brush.horizontalGradient(listOf(ChatGold, ChatGoldBright))
                     else Brush.horizontalGradient(listOf(ChatPanel, ChatPanel))
                 )
                 .clickable(enabled = sendActive) { onSend() },
             contentAlignment = Alignment.Center,
         ) {
-            Text("↑", color = if (sendActive) Color.White else ChatTextMuted, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text("↑", color = if (sendActive) ChatInk else ChatTextMuted, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
