@@ -47,15 +47,21 @@ private val ChatGoldBright = Color(0xFFFFC94D)
 private val ChatGoldDim = Color(0xFF8A7223)
 private val ChatTextPrimary = Color(0xFFF5F2E8)
 private val ChatTextMuted = Color(0xFF9A927E)
+private val ChatRed = Color(0xFFE05252)
+private val ChatGreen = Color(0xFF4ADE80)
 
 @Composable
 fun ChatScreen(
     messages: List<PersistedMessage>,
     draft: String,
     sophiaState: SophiaState,
+    isListening: Boolean,
+    voiceOutputEnabled: Boolean,
     onDraftChange: (String) -> Unit,
     onSend: () -> Unit,
     onBack: () -> Unit,
+    onToggleVoiceOutput: () -> Unit,
+    onMicToggle: () -> Unit,
 ) {
     val listState = rememberLazyListState()
     val isThinking = sophiaState == SophiaState.THINKING
@@ -70,7 +76,12 @@ fun ChatScreen(
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(ChatInk, Color(0xFF0C0A0F), ChatInk)))
     ) {
-        ChatHeader(sophiaState = sophiaState, onBack = onBack)
+        ChatHeader(
+            sophiaState = sophiaState,
+            voiceOutputEnabled = voiceOutputEnabled,
+            onBack = onBack,
+            onToggleVoiceOutput = onToggleVoiceOutput,
+        )
 
         if (messages.isEmpty() && !isThinking) {
             EmptyChatState(modifier = Modifier.weight(1f))
@@ -93,14 +104,21 @@ fun ChatScreen(
         ChatInputBar(
             draft = draft,
             enabled = !isThinking,
+            isListening = isListening,
             onDraftChange = onDraftChange,
             onSend = onSend,
+            onMicToggle = onMicToggle,
         )
     }
 }
 
 @Composable
-private fun ChatHeader(sophiaState: SophiaState, onBack: () -> Unit) {
+private fun ChatHeader(
+    sophiaState: SophiaState,
+    voiceOutputEnabled: Boolean,
+    onBack: () -> Unit,
+    onToggleVoiceOutput: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -121,7 +139,7 @@ private fun ChatHeader(sophiaState: SophiaState, onBack: () -> Unit) {
             modifier = Modifier.padding(start = 12.dp),
             emblemSize = 40.dp,
         )
-        Column(modifier = Modifier.padding(start = 12.dp)) {
+        Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
             Text("Sophia", color = ChatTextPrimary, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             Text(
                 text = when (sophiaState) {
@@ -131,6 +149,20 @@ private fun ChatHeader(sophiaState: SophiaState, onBack: () -> Unit) {
                 },
                 color = if (sophiaState == SophiaState.IDLE) ChatGoldBright else ChatGold,
                 fontSize = 12.sp,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(if (voiceOutputEnabled) ChatGold else ChatPanel)
+                .clickable { onToggleVoiceOutput() },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                if (voiceOutputEnabled) "🔊" else "🔇",
+                fontSize = 16.sp,
+                color = if (voiceOutputEnabled) ChatInk else ChatTextMuted,
             )
         }
     }
@@ -154,7 +186,7 @@ private fun EmptyChatState(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            "Ask a question, think out loud, or just start a conversation.",
+            "Tap the mic to speak, or type below.",
             color = ChatTextMuted,
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
@@ -239,8 +271,10 @@ private fun TypingDots() {
 private fun ChatInputBar(
     draft: String,
     enabled: Boolean,
+    isListening: Boolean,
     onDraftChange: (String) -> Unit,
     onSend: () -> Unit,
+    onMicToggle: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -248,14 +282,33 @@ private fun ChatInputBar(
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    if (isListening) Brush.horizontalGradient(listOf(ChatRed, ChatRed))
+                    else Brush.horizontalGradient(listOf(ChatPanel, ChatPanel))
+                )
+                .clickable { onMicToggle() },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                if (isListening) "◼" else "🎤",
+                fontSize = if (isListening) 18.sp else 16.sp,
+                color = if (isListening) Color.White else ChatGold,
+            )
+        }
+        Spacer(Modifier.size(8.dp))
+
         TextField(
-            value = draft,
+            value = if (isListening) "Listening…" else draft,
             onValueChange = onDraftChange,
             modifier = Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(24.dp)),
             placeholder = { Text("Message Sophia…", color = ChatTextMuted) },
-            enabled = enabled,
+            enabled = enabled && !isListening,
             textStyle = LocalTextStyle.current.copy(color = ChatTextPrimary, fontSize = 15.sp),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = ChatInputBg,
@@ -267,8 +320,9 @@ private fun ChatInputBar(
                 cursorColor = ChatGold,
             ),
         )
-        Spacer(Modifier.size(10.dp))
-        val sendActive = enabled && draft.isNotBlank()
+        Spacer(Modifier.size(8.dp))
+
+        val sendActive = enabled && draft.isNotBlank() && !isListening
         Box(
             modifier = Modifier
                 .size(48.dp)
