@@ -34,14 +34,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
 private val SophiaPrimary = Color(0xFF6C63FF)
 private val SophiaSecondary = Color(0xFF00D4C8)
-private val SophiaBackground = Color(0xFF0B0C14)
-private val SophiaSurface = Color(0xFF15161F)
+private val SophiaBackground = Color(0xFF07080F)
+private val SophiaSurface = Color(0xFF13141F)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,36 +69,7 @@ private fun SophiaDemoApp() {
     if (showChat) {
         ChatScreen(onBack = { showChat = false })
     } else {
-        DashboardScreen(onOpenChat = { showChat = true })
-    }
-}
-
-@Composable
-private fun DashboardScreen(onOpenChat: () -> Unit) {
-    Scaffold { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            SophiaAvatar(state = SophiaState.IDLE, modifier = Modifier.padding(top = 32.dp))
-            Text(
-                text = "Sophia",
-                style = MaterialTheme.typography.headlineLarge,
-                modifier = Modifier.padding(top = 16.dp),
-            )
-            Text(
-                text = "Your AI operating assistant.",
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp, bottom = 32.dp),
-            )
-            Button(onClick = onOpenChat) {
-                Text("Talk to Sophia")
-            }
-        }
+        HomeScreen(onOpenChat = { showChat = true })
     }
 }
 
