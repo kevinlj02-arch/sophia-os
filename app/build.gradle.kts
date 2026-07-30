@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.1.0-demo"
+        versionName = "0.2.0-demo"
     }
 
     buildFeatures {
@@ -43,4 +43,5 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 }
