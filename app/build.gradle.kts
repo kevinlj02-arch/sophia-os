@@ -13,11 +13,18 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.2.0-demo"
+        versionName = "0.3.0-demo"
+
+        buildConfigField(
+            "String",
+            "ANTHROPIC_API_KEY",
+            "\"${System.getenv("ANTHROPIC_API_KEY") ?: ""}\""
+        )
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {
@@ -44,4 +51,5 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
