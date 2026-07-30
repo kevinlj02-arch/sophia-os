@@ -53,21 +53,42 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private enum class Screen { HOME, CHAT, MEMORY }
+
 @Composable
 private fun SophiaDemoApp() {
-    var showChat by remember { mutableStateOf(false) }
+    var screen by remember { mutableStateOf(Screen.HOME) }
 
-    if (showChat) {
-        ChatContainer(onBack = { showChat = false })
-    } else {
-        HomeScreen(onOpenChat = { showChat = true })
+    when (screen) {
+        Screen.HOME -> HomeScreen(
+            onOpenChat = { screen = Screen.CHAT },
+            onOpenMemory = { screen = Screen.MEMORY },
+        )
+        Screen.CHAT -> ChatContainer(onBack = { screen = Screen.HOME })
+        Screen.MEMORY -> MemoryContainer(onBack = { screen = Screen.HOME })
     }
+}
+
+@Composable
+private fun MemoryContainer(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val memoryStore = remember { MemoryStore(context) }
+    val scope = rememberCoroutineScope()
+    val facts by memoryStore.facts.collectAsState(initial = emptyList())
+
+    MemoryScreen(
+        facts = facts,
+        onBack = onBack,
+        onForget = { fact -> scope.launch { memoryStore.forget(fact) } },
+        onClearAll = { scope.launch { memoryStore.clearAll() } },
+    )
 }
 
 @Composable
 private fun ChatContainer(onBack: () -> Unit) {
     val context = LocalContext.current
     val chatStore = remember { ChatStore(context) }
+    val memoryStore = remember { MemoryStore(context) }
     val ai = remember { SophiaAI(BuildConfig.ANTHROPIC_API_KEY) }
     val voice = remember { VoiceManager(context) }
     val scope = rememberCoroutineScope()
@@ -101,13 +122,16 @@ private fun ChatContainer(onBack: () -> Unit) {
                 return@launch
             }
 
-            val result = ai.generateReply(history)
+            val knownFacts = memoryStore.currentFactsText()
+            val result = ai.generateReply(history, knownFacts)
             result.fold(
                 onSuccess = { reply ->
                     sophiaState = SophiaState.SPEAKING
                     chatStore.addMessage(fromUser = false, text = reply)
                     if (voiceOutputEnabled) voice.speak(reply)
                     sophiaState = SophiaState.IDLE
+                    val newFacts = ai.extractFacts(trimmed, reply)
+                    newFacts.forEach { memoryStore.remember(it) }
                 },
                 onFailure = { error ->
                     chatStore.addMessage(
@@ -123,9 +147,7 @@ private fun ChatContainer(onBack: () -> Unit) {
     val latestSend = rememberUpdatedState { text: String -> sendMessage(text) }
 
     DisposableEffect(Unit) {
-        voice.onResult = { spoken ->
-            latestSend.value(spoken)
-        }
+        voice.onResult = { spoken -> latestSend.value(spoken) }
         voice.onListeningChanged = { listening -> isListening = listening }
         voice.onError = { _ -> isListening = false }
         onDispose { voice.shutdown() }
