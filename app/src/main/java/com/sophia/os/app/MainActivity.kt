@@ -22,23 +22,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-
-// Demo build: everything lives in one file and one Activity so the whole app
-// is easy to paste and review from a phone. No persistence, no DI, no network —
-// this exists to prove out the UI shell and get a real APK in hand quickly.
-// The full modular architecture (Room, Hilt, memory engine, multi-module split)
-// lives in the main sophia-os project and is the basis for the production build.
-
-private data class ChatMessage(val fromUser: Boolean, val text: String)
+import kotlinx.coroutines.launch
 
 private val SophiaPrimary = Color(0xFF6C63FF)
 private val SophiaSecondary = Color(0xFF00D4C8)
@@ -68,10 +63,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun SophiaDemoApp() {
     var showChat by remember { mutableStateOf(false) }
-    val messages = remember { mutableStateListOf<ChatMessage>() }
 
     if (showChat) {
-        ChatScreen(messages = messages, onBack = { showChat = false })
+        ChatScreen(onBack = { showChat = false })
     } else {
         DashboardScreen(onOpenChat = { showChat = true })
     }
@@ -88,7 +82,7 @@ private fun DashboardScreen(onOpenChat: () -> Unit) {
         ) {
             Text(text = "Good day.", style = MaterialTheme.typography.headlineLarge)
             Text(
-                text = "I'm Sophia. This is an early demo build.",
+                text = "I'm Sophia. Your conversation history now persists across restarts.",
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
             )
@@ -100,7 +94,11 @@ private fun DashboardScreen(onOpenChat: () -> Unit) {
 }
 
 @Composable
-private fun ChatScreen(messages: androidx.compose.runtime.snapshots.SnapshotStateList<ChatMessage>, onBack: () -> Unit) {
+private fun ChatScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val chatStore = remember { ChatStore(context) }
+    val scope = rememberCoroutineScope()
+    val messages by chatStore.messages.collectAsState(initial = emptyList())
     var draft by remember { mutableStateOf("") }
 
     Scaffold(
@@ -119,14 +117,14 @@ private fun ChatScreen(messages: androidx.compose.runtime.snapshots.SnapshotStat
                     onClick = {
                         val text = draft.trim()
                         if (text.isNotEmpty()) {
-                            messages.add(ChatMessage(fromUser = true, text = text))
-                            messages.add(
-                                ChatMessage(
-                                    fromUser = false,
-                                    text = "This is a demo build, so I can't reason yet — but your message came through.",
-                                )
-                            )
                             draft = ""
+                            scope.launch {
+                                chatStore.addMessage(fromUser = true, text = text)
+                                chatStore.addMessage(
+                                    fromUser = false,
+                                    text = "This is a demo build, so I can't reason yet — but I've saved that, and it'll still be here next time you open the app.",
+                                )
+                            }
                         }
                     },
                     modifier = Modifier.padding(start = 8.dp),
@@ -144,24 +142,26 @@ private fun ChatScreen(messages: androidx.compose.runtime.snapshots.SnapshotStat
                 modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(messages) { message -> MessageBubble(message) }
+                items(messages) { message ->
+                    MessageBubble(fromUser = message.fromUser, text = message.text)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun MessageBubble(message: ChatMessage) {
+private fun MessageBubble(fromUser: Boolean, text: String) {
     Box(modifier = Modifier.fillMaxWidth()) {
         Card(
             modifier = Modifier
-                .align(if (message.fromUser) Alignment.CenterEnd else Alignment.CenterStart)
+                .align(if (fromUser) Alignment.CenterEnd else Alignment.CenterStart)
                 .padding(vertical = 4.dp),
             colors = CardDefaults.cardColors(
-                containerColor = if (message.fromUser) SophiaPrimary else SophiaSurface,
+                containerColor = if (fromUser) SophiaPrimary else SophiaSurface,
             ),
         ) {
-            Text(text = message.text, modifier = Modifier.padding(12.dp))
+            Text(text = text, modifier = Modifier.padding(12.dp))
         }
     }
 }
