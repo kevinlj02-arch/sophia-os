@@ -39,6 +39,7 @@ private val ReadoutBg = Color(0xCC0F0D13)
 fun HomeScreen(
     onOpenChat: () -> Unit,
     onOpenMemory: () -> Unit,
+    onOpenTasks: () -> Unit,
     sophiaState: SophiaState = SophiaState.IDLE,
 ) {
     Box(
@@ -128,7 +129,7 @@ fun HomeScreen(
                             ModuleChip("Memory Vault", true, Modifier.weight(1f), onOpenMemory)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            ModuleChip("Knowledge", false, Modifier.weight(1f)) {}
+                            ModuleChip("Task Manager", true, Modifier.weight(1f), onOpenTasks)
                             ModuleChip("Security", false, Modifier.weight(1f)) {}
                         }
                     }
@@ -146,7 +147,7 @@ fun HomeScreen(
                 Spacer(Modifier.height(8.dp))
             }
 
-            CommandBar()
+            CommandBar(onOpenTasks = onOpenTasks)
             Spacer(Modifier.height(20.dp))
         }
     }
@@ -237,8 +238,7 @@ private fun ModuleChip(
 }
 
 @Composable
-private fun CommandBar() {
-    val items = listOf("FILES", "SIMS", "3D", "HOLO", "ANALYTICS", "TASKS")
+private fun CommandBar(onOpenTasks: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -248,8 +248,22 @@ private fun CommandBar() {
             .padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
-        items.forEach { label ->
-            Text(label, color = Gold, fontSize = 10.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
-        }
+        CommandBarItem("FILES") {}
+        CommandBarItem("SIMS") {}
+        CommandBarItem("3D") {}
+        CommandBarItem("ANALYTICS") {}
+        CommandBarItem("TASKS", onOpenTasks)
     }
+}
+
+@Composable
+private fun CommandBarItem(label: String, onClick: () -> Unit) {
+    Text(
+        label,
+        color = Gold,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.5.sp,
+        modifier = Modifier.clickable { onClick() }.padding(4.dp),
+    )
 }
