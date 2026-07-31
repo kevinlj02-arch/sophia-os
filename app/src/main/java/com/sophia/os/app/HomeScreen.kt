@@ -40,6 +40,7 @@ fun HomeScreen(
     onOpenChat: () -> Unit,
     onOpenMemory: () -> Unit,
     onOpenTasks: () -> Unit,
+    onOpenNotes: () -> Unit,
     onOpenSettings: () -> Unit,
     sophiaState: SophiaState = SophiaState.IDLE,
 ) {
@@ -131,7 +132,11 @@ fun HomeScreen(
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             ModuleChip("Task Manager", true, Modifier.weight(1f), onOpenTasks)
+                            ModuleChip("Notes", true, Modifier.weight(1f), onOpenNotes)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             ModuleChip("Settings", true, Modifier.weight(1f), onOpenSettings)
+                            ModuleChip("Security", false, Modifier.weight(1f)) {}
                         }
                     }
                 }
@@ -148,7 +153,7 @@ fun HomeScreen(
                 Spacer(Modifier.height(8.dp))
             }
 
-            CommandBar(onOpenTasks = onOpenTasks, onOpenSettings = onOpenSettings)
+            CommandBar(onOpenTasks = onOpenTasks, onOpenNotes = onOpenNotes, onOpenSettings = onOpenSettings)
             Spacer(Modifier.height(20.dp))
         }
     }
@@ -248,7 +253,7 @@ private fun ModuleChip(
 }
 
 @Composable
-private fun CommandBar(onOpenTasks: () -> Unit, onOpenSettings: () -> Unit) {
+private fun CommandBar(onOpenTasks: () -> Unit, onOpenNotes: () -> Unit, onOpenSettings: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -259,9 +264,9 @@ private fun CommandBar(onOpenTasks: () -> Unit, onOpenSettings: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
         CommandBarItem("FILES") {}
-        CommandBarItem("SIMS") {}
-        CommandBarItem("3D") {}
         CommandBarItem("TASKS", onOpenTasks)
+        CommandBarItem("NOTES", onOpenNotes)
+        CommandBarItem("3D") {}
         CommandBarItem("SETTINGS", onOpenSettings)
     }
 }
