@@ -55,6 +55,12 @@ class TaskStore(private val context: Context) {
         }
     }
 
+    suspend fun clearAll() {
+        context.taskDataStore.edit { prefs ->
+            prefs[tasksKey] = "[]"
+        }
+    }
+
     private fun parseTasks(json: String): List<Task> {
         val array = JSONArray(json)
         return (0 until array.length()).map { i ->
