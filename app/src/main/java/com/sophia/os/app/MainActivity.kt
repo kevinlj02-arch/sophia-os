@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Screen { HOME, CHAT, MEMORY }
+private enum class Screen { HOME, CHAT, MEMORY, TASKS }
 
 @Composable
 private fun SophiaDemoApp() {
@@ -63,10 +63,38 @@ private fun SophiaDemoApp() {
         Screen.HOME -> HomeScreen(
             onOpenChat = { screen = Screen.CHAT },
             onOpenMemory = { screen = Screen.MEMORY },
+            onOpenTasks = { screen = Screen.TASKS },
         )
         Screen.CHAT -> ChatContainer(onBack = { screen = Screen.HOME })
         Screen.MEMORY -> MemoryContainer(onBack = { screen = Screen.HOME })
+        Screen.TASKS -> TaskContainer(onBack = { screen = Screen.HOME })
     }
+}
+
+@Composable
+private fun TaskContainer(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val taskStore = remember { TaskStore(context) }
+    val scope = rememberCoroutineScope()
+    val tasks by taskStore.tasks.collectAsState(initial = emptyList())
+    var draft by remember { mutableStateOf("") }
+
+    TaskScreen(
+        tasks = tasks,
+        draft = draft,
+        onDraftChange = { draft = it },
+        onAdd = {
+            val t = draft.trim()
+            if (t.isNotEmpty()) {
+                draft = ""
+                scope.launch { taskStore.addTask(t) }
+            }
+        },
+        onToggle = { id -> scope.launch { taskStore.toggleTask(id) } },
+        onDelete = { id -> scope.launch { taskStore.deleteTask(id) } },
+        onClearCompleted = { scope.launch { taskStore.clearCompleted() } },
+        onBack = onBack,
+    )
 }
 
 @Composable
