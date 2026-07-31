@@ -15,6 +15,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,24 +54,79 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Screen { HOME, CHAT, MEMORY, TASKS, SETTINGS }
+private enum class Screen { HOME, CONVERSATIONS, CHAT, MEMORY, TASKS, SETTINGS }
 
 @Composable
 private fun SophiaDemoApp() {
+    val context = LocalContext.current
+    val chatStore = remember { ChatStore(context) }
+    val scope = rememberCoroutineScope()
+
     var screen by remember { mutableStateOf(Screen.HOME) }
+    var activeConversationId by remember { mutableStateOf<Long?>(null) }
+
+    fun openConversation(id: Long?) {
+        if (id != null) {
+            activeConversationId = id
+            screen = Screen.CHAT
+        } else {
+            scope.launch {
+                val newId = chatStore.createConversation()
+                activeConversationId = newId
+                screen = Screen.CHAT
+            }
+        }
+    }
 
     when (screen) {
         Screen.HOME -> HomeScreen(
-            onOpenChat = { screen = Screen.CHAT },
+            onOpenChat = { screen = Screen.CONVERSATIONS },
             onOpenMemory = { screen = Screen.MEMORY },
             onOpenTasks = { screen = Screen.TASKS },
             onOpenSettings = { screen = Screen.SETTINGS },
         )
-        Screen.CHAT -> ChatContainer(onBack = { screen = Screen.HOME })
+        Screen.CONVERSATIONS -> ConversationListContainer(
+            chatStore = chatStore,
+            onOpen = { id -> openConversation(id) },
+            onNew = { openConversation(null) },
+            onBack = { screen = Screen.HOME },
+        )
+        Screen.CHAT -> {
+            val id = activeConversationId
+            if (id == null) {
+                LaunchedEffect(Unit) { screen = Screen.CONVERSATIONS }
+            } else {
+                ChatContainer(
+                    conversationId = id,
+                    chatStore = chatStore,
+                    onBack = { screen = Screen.CONVERSATIONS },
+                    onNewChat = { openConversation(null) },
+                )
+            }
+        }
         Screen.MEMORY -> MemoryContainer(onBack = { screen = Screen.HOME })
         Screen.TASKS -> TaskContainer(onBack = { screen = Screen.HOME })
         Screen.SETTINGS -> SettingsContainer(onBack = { screen = Screen.HOME })
     }
+}
+
+@Composable
+private fun ConversationListContainer(
+    chatStore: ChatStore,
+    onOpen: (Long) -> Unit,
+    onNew: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    val conversations by chatStore.conversations.collectAsState(initial = emptyList())
+
+    ConversationListScreen(
+        conversations = conversations,
+        onOpen = onOpen,
+        onNew = onNew,
+        onDelete = { id -> scope.launch { chatStore.deleteConversation(id) } },
+        onBack = onBack,
+    )
 }
 
 @Composable
@@ -135,23 +191,25 @@ private fun MemoryContainer(onBack: () -> Unit) {
 }
 
 @Composable
-private fun ChatContainer(onBack: () -> Unit) {
+private fun ChatContainer(
+    conversationId: Long,
+    chatStore: ChatStore,
+    onBack: () -> Unit,
+    onNewChat: () -> Unit,
+) {
     val context = LocalContext.current
-    val chatStore = remember { ChatStore(context) }
     val memoryStore = remember { MemoryStore(context) }
     val settingsStore = remember { SettingsStore(context) }
     val ai = remember { SophiaAI(BuildConfig.ANTHROPIC_API_KEY) }
     val voice = remember { VoiceManager(context) }
     val scope = rememberCoroutineScope()
-    val messages by chatStore.messages.collectAsState(initial = emptyList())
+    val messages by chatStore.messagesFor(conversationId).collectAsState(initial = emptyList())
     val voiceDefault by settingsStore.voiceOutputDefault.collectAsState(initial = false)
     var draft by remember { mutableStateOf("") }
     var sophiaState by remember { mutableStateOf(SophiaState.IDLE) }
     var isListening by remember { mutableStateOf(false) }
     var voiceOutputEnabled by remember { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(voiceDefault) {
-        voiceOutputEnabled = voiceDefault
-    }
+    LaunchedEffect(voiceDefault) { voiceOutputEnabled = voiceDefault }
     var micGranted by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
@@ -164,12 +222,13 @@ private fun ChatContainer(onBack: () -> Unit) {
         if (trimmed.isEmpty() || sophiaState == SophiaState.THINKING) return
         draft = ""
         scope.launch {
-            chatStore.addMessage(fromUser = true, text = trimmed)
+            chatStore.addMessage(conversationId, fromUser = true, text = trimmed)
             sophiaState = SophiaState.THINKING
             val history = messages + PersistedMessage(true, trimmed)
 
             if (BuildConfig.ANTHROPIC_API_KEY.isBlank()) {
                 chatStore.addMessage(
+                    conversationId,
                     fromUser = false,
                     text = "My API key isn't set up yet. Add the ANTHROPIC_API_KEY secret and rebuild.",
                 )
@@ -182,12 +241,13 @@ private fun ChatContainer(onBack: () -> Unit) {
             result.fold(
                 onSuccess = { reply ->
                     sophiaState = SophiaState.SPEAKING
-                    chatStore.addMessage(fromUser = false, text = reply)
+                    chatStore.addMessage(conversationId, fromUser = false, text = reply)
                     if (voiceOutputEnabled) voice.speak(reply)
                     sophiaState = SophiaState.IDLE
                 },
                 onFailure = { error ->
                     chatStore.addMessage(
+                        conversationId,
                         fromUser = false,
                         text = "I hit an error reaching my reasoning service: ${error.message}",
                     )
@@ -224,6 +284,7 @@ private fun ChatContainer(onBack: () -> Unit) {
         voiceOutputEnabled = voiceOutputEnabled,
         onDraftChange = { draft = it },
         onBack = onBack,
+        onNewChat = onNewChat,
         onSend = { sendMessage(draft) },
         onToggleVoiceOutput = {
             voiceOutputEnabled = !voiceOutputEnabled
