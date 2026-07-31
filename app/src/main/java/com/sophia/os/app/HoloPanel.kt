@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -27,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -47,15 +50,18 @@ fun HoloPanel(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val transition = rememberInfiniteTransition(label = "panelGlow")
+    val transition = rememberInfiniteTransition(label = "panelFx")
     val glow by transition.animateFloat(
         initialValue = 0.55f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2600, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec = infiniteRepeatable(tween(2600, easing = LinearEasing), RepeatMode.Reverse),
         label = "glow",
+    )
+    val scan by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(4200, easing = LinearEasing), RepeatMode.Restart),
+        label = "scan",
     )
 
     Box(modifier = modifier) {
@@ -74,7 +80,36 @@ fun HoloPanel(
                 .padding(1.5.dp)
                 .clip(RoundedCornerShape(13.dp))
                 .background(PanelBg)
-                .padding(14.dp)
+                .drawWithContent {
+                    drawContent()
+                    val y = size.height * scan
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                PanelGoldBright.copy(alpha = 0.06f),
+                                Color.Transparent,
+                            ),
+                            startY = y - 40f,
+                            endY = y + 40f,
+                        ),
+                        topLeft = Offset(0f, y - 40f),
+                        size = androidx.compose.ui.geometry.Size(size.width, 80f),
+                    )
+                    val len = 14.dp.toPx()
+                    val stroke = 1.5.dp.toPx()
+                    val c = PanelGoldBright.copy(alpha = 0.7f)
+                    val inset = 3.dp.toPx()
+                    drawLine(c, Offset(inset, inset), Offset(inset + len, inset), stroke)
+                    drawLine(c, Offset(inset, inset), Offset(inset, inset + len), stroke)
+                    drawLine(c, Offset(size.width - inset, inset), Offset(size.width - inset - len, inset), stroke)
+                    drawLine(c, Offset(size.width - inset, inset), Offset(size.width - inset, inset + len), stroke)
+                    drawLine(c, Offset(inset, size.height - inset), Offset(inset + len, size.height - inset), stroke)
+                    drawLine(c, Offset(inset, size.height - inset), Offset(inset, size.height - inset - len), stroke)
+                    drawLine(c, Offset(size.width - inset, size.height - inset), Offset(size.width - inset - len, size.height - inset), stroke)
+                    drawLine(c, Offset(size.width - inset, size.height - inset), Offset(size.width - inset, size.height - inset - len), stroke)
+                }
+                .padding(16.dp)
         ) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
