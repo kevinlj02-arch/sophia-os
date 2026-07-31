@@ -40,6 +40,7 @@ fun HomeScreen(
     onOpenChat: () -> Unit,
     onOpenMemory: () -> Unit,
     onOpenTasks: () -> Unit,
+    onOpenSettings: () -> Unit,
     sophiaState: SophiaState = SophiaState.IDLE,
 ) {
     Box(
@@ -53,7 +54,7 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            TopStatusBar()
+            TopStatusBar(onOpenSettings = onOpenSettings)
 
             Text(
                 text = "SOPHIA OS",
@@ -130,7 +131,7 @@ fun HomeScreen(
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             ModuleChip("Task Manager", true, Modifier.weight(1f), onOpenTasks)
-                            ModuleChip("Security", false, Modifier.weight(1f)) {}
+                            ModuleChip("Settings", true, Modifier.weight(1f), onOpenSettings)
                         }
                     }
                 }
@@ -147,7 +148,7 @@ fun HomeScreen(
                 Spacer(Modifier.height(8.dp))
             }
 
-            CommandBar(onOpenTasks = onOpenTasks)
+            CommandBar(onOpenTasks = onOpenTasks, onOpenSettings = onOpenSettings)
             Spacer(Modifier.height(20.dp))
         }
     }
@@ -172,18 +173,27 @@ private fun FloatingReadout(
 }
 
 @Composable
-private fun TopStatusBar() {
+private fun TopStatusBar(onOpenSettings: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0xFF0A0810))
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         StatusChip("STATUS", "OPTIMAL", Green)
         StatusChip("CORE", "32°C", GoldBright)
         StatusChip("LINK", "SECURE", Green)
-        StatusChip("UPTIME", "127d", GoldBright)
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onOpenSettings() }
+                .padding(horizontal = 6.dp, vertical = 2.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("⚙", color = Gold, fontSize = 18.sp)
+        }
     }
 }
 
@@ -238,7 +248,7 @@ private fun ModuleChip(
 }
 
 @Composable
-private fun CommandBar(onOpenTasks: () -> Unit) {
+private fun CommandBar(onOpenTasks: () -> Unit, onOpenSettings: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -251,8 +261,8 @@ private fun CommandBar(onOpenTasks: () -> Unit) {
         CommandBarItem("FILES") {}
         CommandBarItem("SIMS") {}
         CommandBarItem("3D") {}
-        CommandBarItem("ANALYTICS") {}
         CommandBarItem("TASKS", onOpenTasks)
+        CommandBarItem("SETTINGS", onOpenSettings)
     }
 }
 
