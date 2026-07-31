@@ -28,6 +28,12 @@ class ChatStore(private val context: Context) {
         }
     }
 
+    suspend fun clearAll() {
+        context.chatDataStore.edit { prefs ->
+            prefs[messagesKey] = "[]"
+        }
+    }
+
     private fun parseMessages(json: String): List<PersistedMessage> {
         val array = JSONArray(json)
         return (0 until array.length()).map { i ->
