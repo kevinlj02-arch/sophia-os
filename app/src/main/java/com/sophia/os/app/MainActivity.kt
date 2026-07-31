@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Screen { HOME, CHAT, MEMORY, TASKS }
+private enum class Screen { HOME, CHAT, MEMORY, TASKS, SETTINGS }
 
 @Composable
 private fun SophiaDemoApp() {
@@ -64,11 +64,33 @@ private fun SophiaDemoApp() {
             onOpenChat = { screen = Screen.CHAT },
             onOpenMemory = { screen = Screen.MEMORY },
             onOpenTasks = { screen = Screen.TASKS },
+            onOpenSettings = { screen = Screen.SETTINGS },
         )
         Screen.CHAT -> ChatContainer(onBack = { screen = Screen.HOME })
         Screen.MEMORY -> MemoryContainer(onBack = { screen = Screen.HOME })
         Screen.TASKS -> TaskContainer(onBack = { screen = Screen.HOME })
+        Screen.SETTINGS -> SettingsContainer(onBack = { screen = Screen.HOME })
     }
+}
+
+@Composable
+private fun SettingsContainer(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val settingsStore = remember { SettingsStore(context) }
+    val chatStore = remember { ChatStore(context) }
+    val memoryStore = remember { MemoryStore(context) }
+    val taskStore = remember { TaskStore(context) }
+    val scope = rememberCoroutineScope()
+    val voiceDefault by settingsStore.voiceOutputDefault.collectAsState(initial = false)
+
+    SettingsScreen(
+        voiceOutputDefault = voiceDefault,
+        onToggleVoiceDefault = { enabled -> scope.launch { settingsStore.setVoiceOutputDefault(enabled) } },
+        onClearConversations = { scope.launch { chatStore.clearAll() } },
+        onClearMemory = { scope.launch { memoryStore.clearAll() } },
+        onClearTasks = { scope.launch { taskStore.clearAll() } },
+        onBack = onBack,
+    )
 }
 
 @Composable
@@ -117,14 +139,19 @@ private fun ChatContainer(onBack: () -> Unit) {
     val context = LocalContext.current
     val chatStore = remember { ChatStore(context) }
     val memoryStore = remember { MemoryStore(context) }
+    val settingsStore = remember { SettingsStore(context) }
     val ai = remember { SophiaAI(BuildConfig.ANTHROPIC_API_KEY) }
     val voice = remember { VoiceManager(context) }
     val scope = rememberCoroutineScope()
     val messages by chatStore.messages.collectAsState(initial = emptyList())
+    val voiceDefault by settingsStore.voiceOutputDefault.collectAsState(initial = false)
     var draft by remember { mutableStateOf("") }
     var sophiaState by remember { mutableStateOf(SophiaState.IDLE) }
     var isListening by remember { mutableStateOf(false) }
     var voiceOutputEnabled by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(voiceDefault) {
+        voiceOutputEnabled = voiceDefault
+    }
     var micGranted by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
