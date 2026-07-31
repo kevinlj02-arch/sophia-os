@@ -54,16 +54,18 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Screen { HOME, CONVERSATIONS, CHAT, MEMORY, TASKS, SETTINGS }
+private enum class Screen { HOME, CONVERSATIONS, CHAT, MEMORY, TASKS, NOTES, NOTE_EDITOR, SETTINGS }
 
 @Composable
 private fun SophiaDemoApp() {
     val context = LocalContext.current
     val chatStore = remember { ChatStore(context) }
+    val noteStore = remember { NoteStore(context) }
     val scope = rememberCoroutineScope()
 
     var screen by remember { mutableStateOf(Screen.HOME) }
     var activeConversationId by remember { mutableStateOf<Long?>(null) }
+    var activeNoteId by remember { mutableStateOf<Long?>(null) }
 
     fun openConversation(id: Long?) {
         if (id != null) {
@@ -78,11 +80,25 @@ private fun SophiaDemoApp() {
         }
     }
 
+    fun openNote(id: Long?) {
+        if (id != null) {
+            activeNoteId = id
+            screen = Screen.NOTE_EDITOR
+        } else {
+            scope.launch {
+                val newId = noteStore.createNote()
+                activeNoteId = newId
+                screen = Screen.NOTE_EDITOR
+            }
+        }
+    }
+
     when (screen) {
         Screen.HOME -> HomeScreen(
             onOpenChat = { screen = Screen.CONVERSATIONS },
             onOpenMemory = { screen = Screen.MEMORY },
             onOpenTasks = { screen = Screen.TASKS },
+            onOpenNotes = { screen = Screen.NOTES },
             onOpenSettings = { screen = Screen.SETTINGS },
         )
         Screen.CONVERSATIONS -> ConversationListContainer(
@@ -104,10 +120,68 @@ private fun SophiaDemoApp() {
                 )
             }
         }
+        Screen.NOTES -> NotesListContainer(
+            noteStore = noteStore,
+            onOpen = { id -> openNote(id) },
+            onNew = { openNote(null) },
+            onBack = { screen = Screen.HOME },
+        )
+        Screen.NOTE_EDITOR -> {
+            val id = activeNoteId
+            if (id == null) {
+                LaunchedEffect(Unit) { screen = Screen.NOTES }
+            } else {
+                NoteEditorContainer(
+                    noteId = id,
+                    noteStore = noteStore,
+                    onBack = { screen = Screen.NOTES },
+                )
+            }
+        }
         Screen.MEMORY -> MemoryContainer(onBack = { screen = Screen.HOME })
         Screen.TASKS -> TaskContainer(onBack = { screen = Screen.HOME })
         Screen.SETTINGS -> SettingsContainer(onBack = { screen = Screen.HOME })
     }
+}
+
+@Composable
+private fun NotesListContainer(
+    noteStore: NoteStore,
+    onOpen: (Long) -> Unit,
+    onNew: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    val notes by noteStore.notes.collectAsState(initial = emptyList())
+
+    NotesListScreen(
+        notes = notes,
+        onOpen = onOpen,
+        onNew = onNew,
+        onDelete = { id -> scope.launch { noteStore.deleteNote(id) } },
+        onBack = onBack,
+    )
+}
+
+@Composable
+private fun NoteEditorContainer(
+    noteId: Long,
+    noteStore: NoteStore,
+    onBack: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    val notes by noteStore.notes.collectAsState(initial = emptyList())
+    val note = notes.firstOrNull { it.id == noteId }
+
+    NoteEditorScreen(
+        initialTitle = note?.title ?: "",
+        initialBody = note?.body ?: "",
+        onSave = { title, body -> scope.launch { noteStore.updateNote(noteId, title, body) } },
+        onBack = {
+            scope.launch { noteStore.pruneEmpty() }
+            onBack()
+        },
+    )
 }
 
 @Composable
