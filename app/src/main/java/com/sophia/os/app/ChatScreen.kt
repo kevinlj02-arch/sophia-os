@@ -48,7 +48,6 @@ private val ChatGoldDim = Color(0xFF8A7223)
 private val ChatTextPrimary = Color(0xFFF5F2E8)
 private val ChatTextMuted = Color(0xFF9A927E)
 private val ChatRed = Color(0xFFE05252)
-private val ChatGreen = Color(0xFF4ADE80)
 
 @Composable
 fun ChatScreen(
@@ -60,6 +59,7 @@ fun ChatScreen(
     onDraftChange: (String) -> Unit,
     onSend: () -> Unit,
     onBack: () -> Unit,
+    onNewChat: () -> Unit,
     onToggleVoiceOutput: () -> Unit,
     onMicToggle: () -> Unit,
 ) {
@@ -80,6 +80,7 @@ fun ChatScreen(
             sophiaState = sophiaState,
             voiceOutputEnabled = voiceOutputEnabled,
             onBack = onBack,
+            onNewChat = onNewChat,
             onToggleVoiceOutput = onToggleVoiceOutput,
         )
 
@@ -117,6 +118,7 @@ private fun ChatHeader(
     sophiaState: SophiaState,
     voiceOutputEnabled: Boolean,
     onBack: () -> Unit,
+    onNewChat: () -> Unit,
     onToggleVoiceOutput: () -> Unit,
 ) {
     Row(
@@ -151,6 +153,17 @@ private fun ChatHeader(
                 fontSize = 12.sp,
             )
         }
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(ChatPanel)
+                .clickable { onNewChat() },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("+", color = ChatGold, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.size(8.dp))
         Box(
             modifier = Modifier
                 .size(40.dp)
